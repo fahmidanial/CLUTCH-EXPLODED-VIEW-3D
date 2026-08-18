@@ -1,0 +1,22 @@
+=========================================================
+      PROJEK CLUTCH 3D INTERACTIVE EXPLODED VIEW
+=========================================================
+
+Folder ini mengandungi fail penuh aplikasi 3D Clutch Assembly:
+
+1. index.html          : Aplikasi Three.js interaktif penuh (kawalan langkah, outliner mata hide/unhide, slider letupan, sudut kamera).
+2. clutch.glb          : Fail model 3D clutch yang telah dioptimumkan (mengandungi kesemua 26 komponen).
+3. JALANKAN_APLIKASI.bat: Skrip pantas 1-klik untuk menjalankan server dan membuka aplikasi di pelayar web.
+
+---------------------------------------------------------
+CARA MENJALANKAN APLIKASI:
+---------------------------------------------------------
+1. Dwiklik pada fail "JALANKAN_APLIKASI.bat".
+2. Pelayar web anda akan dibuka secara automatik di alamat:
+   http://localhost:8000
+
+ATAU secara manual:
+- Buka terminal PowerShell di dalam folder ini.
+- Jalankan arahan: python -m http.server 8000
+- Buka pelayar web dan layari: http://localhost:8000
+=========================================================
