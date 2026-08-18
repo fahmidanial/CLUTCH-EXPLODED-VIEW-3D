@@ -99,6 +99,7 @@
       gap: 12px;
       transition: all 0.3s ease;
       pointer-events: none;
+      max-width: 90vw;
     }
     .step-tag {
       font-size: 11px;
@@ -116,6 +117,8 @@
       font-weight: 600;
       color: #fff;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* View Controls Bar (Top Right) */
@@ -173,6 +176,7 @@
       box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
       min-width: 740px;
       max-width: 94vw;
+      transition: all 0.3s ease;
     }
 
     .slider-row {
@@ -305,6 +309,35 @@
       flex-direction: column;
       gap: 10px;
       box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    }
+    .sidebar.collapsed {
+      transform: translateX(calc(100% + 30px));
+      pointer-events: none;
+      opacity: 0;
+    }
+    .sidebar-toggle-btn {
+      position: absolute;
+      top: 76px;
+      right: 24px;
+      z-index: 11;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      transition: all 0.2s ease;
+    }
+    .sidebar-toggle-btn:hover {
+      background: rgba(0, 229, 255, 0.15);
+      border-color: var(--accent);
     }
     .sidebar-header {
       display: flex;
@@ -343,12 +376,46 @@
       background: rgba(0,229,255,0.15);
       border-color: var(--accent);
     }
+
+    .search-box {
+      position: relative;
+      width: 100%;
+    }
+    .search-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 6px 10px 6px 28px;
+      font-size: 11px;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      background: rgba(0, 229, 255, 0.05);
+    }
+    .search-input::placeholder {
+      color: var(--text-dim);
+    }
+    .search-icon {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
     .parts-list {
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 4px;
       padding-right: 4px;
+      max-height: calc(100vh - 300px);
     }
     .parts-list::-webkit-scrollbar { width: 4px; }
     .parts-list::-webkit-scrollbar-thumb {
@@ -440,7 +507,7 @@
 
     /* Floating Tooltip */
     #tooltip {
-      position: absolute;
+      position: fixed;
       pointer-events: none;
       z-index: 50;
       background: rgba(10, 15, 26, 0.92);
@@ -453,9 +520,69 @@
       font-size: 12px;
       font-weight: 600;
       opacity: 0;
-      transform: translate(12px, -50%);
+      transform: translate(14px, -50%);
       transition: opacity 0.15s ease;
       white-space: nowrap;
+    }
+
+    /* Shortcuts Modal */
+    #shortcuts-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(6px);
+      z-index: 120;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    #shortcuts-modal.open {
+      display: flex;
+    }
+    .modal-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 24px;
+      width: 420px;
+      max-width: 90vw;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .modal-close:hover { color: #fff; }
+    .shortcut-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 12px;
+    }
+    .kbd-tag {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #fff;
     }
 
     /* Loading Screen */
@@ -504,6 +631,55 @@
       border-radius: 3px;
       transition: width 0.2s ease;
     }
+
+    /* Responsive Media Queries */
+    @media (max-width: 1024px) {
+      .sidebar-toggle-btn { display: inline-flex; }
+      .sidebar {
+        top: 68px;
+        right: 16px;
+        width: 320px;
+      }
+      .control-deck {
+        min-width: unset;
+        width: 96vw;
+        padding: 12px 18px;
+      }
+      .step-banner {
+        top: 70px;
+      }
+    }
+    @media (max-width: 768px) {
+      header {
+        top: 12px;
+        left: 12px;
+      }
+      h1 { font-size: 18px; }
+      .subtitle { display: none; }
+      .presets-bar {
+        top: 12px;
+        right: 12px;
+        gap: 4px;
+        padding: 4px;
+      }
+      .preset-btn {
+        padding: 4px 8px;
+        font-size: 10px;
+      }
+      .control-deck {
+        bottom: 12px;
+        padding: 10px 14px;
+      }
+      .actions-row {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+      }
+      .action-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+      }
+    }
   </style>
 
   <script type="importmap">
@@ -531,14 +707,19 @@
 
   <!-- Camera Presets -->
   <div class="presets-bar">
-    <button class="preset-btn active" id="btn-view-side">Side (Axial View)</button>
-    <button class="preset-btn" id="btn-view-iso">Isometric</button>
-    <button class="preset-btn" id="btn-view-front">Right End</button>
-    <button class="preset-btn" id="btn-view-top">Top View</button>
+    <button class="preset-btn active" id="btn-view-side" title="Side View (Press 1)">Side (Axial View)</button>
+    <button class="preset-btn" id="btn-view-iso" title="Isometric View (Press 2)">Isometric</button>
+    <button class="preset-btn" id="btn-view-front" title="Right End View (Press 3)">Right End</button>
+    <button class="preset-btn" id="btn-view-top" title="Top View (Press 4)">Top View</button>
+    <button class="preset-btn" id="btn-shortcuts" title="Keyboard Shortcuts (Press ?)">⌨️ Help</button>
   </div>
 
   <canvas id="webgl-canvas"></canvas>
   <div id="tooltip">Part Name</div>
+
+  <button class="sidebar-toggle-btn" id="btn-toggle-sidebar" title="Toggle Outliner List">
+    <span>📋 Outliner</span>
+  </button>
 
   <!-- Right Sidebar with Steps & Eye Toggles -->
   <div class="sidebar" id="sidebar">
@@ -551,7 +732,14 @@
         <button class="tool-icon-btn" id="btn-hide-all" title="Hide All Components">
           <span>🚫 Hide All</span>
         </button>
+        <button class="tool-icon-btn" id="btn-close-sidebar" title="Close Sidebar">
+          <span>✕</span>
+        </button>
       </div>
+    </div>
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" id="search-parts" placeholder="Filter components (e.g. spring, bolt, plate)..." />
     </div>
     <div class="parts-list" id="parts-list"></div>
   </div>
@@ -561,8 +749,8 @@
     <div class="slider-row">
       <div class="slider-group">
         <div class="slider-header">
-          <span class="slider-title">Assembly Progress (Step 1: Main Shaft &rarr; Step 21: Radial Bearing)</span>
-          <span class="slider-val" id="slider-label">100% (Fully Assembled 0%)</span>
+          <span class="slider-title">Assembly Progress (Step 1: Main Shaft &rarr; Step 26: Radial Bearing)</span>
+          <span class="slider-val" id="slider-label">100% (Fully Assembled)</span>
         </div>
         <input type="range" class="custom-range" id="explode-slider" min="0" max="1000" value="1000" />
       </div>
@@ -570,18 +758,64 @@
 
     <div class="actions-row">
       <div class="btn-group">
-        <button class="action-btn step-nav-btn" id="btn-first-step" title="First Step (Disassembled)">|◀</button>
-        <button class="action-btn step-nav-btn" id="btn-prev-step" title="Previous Step">◀ Step</button>
-        <button class="action-btn primary" id="btn-animate">
+        <button class="action-btn step-nav-btn" id="btn-first-step" title="First Step (Disassembled, Press Home)">|◀</button>
+        <button class="action-btn step-nav-btn" id="btn-prev-step" title="Previous Step (Press Left/A)">◀ Step</button>
+        <button class="action-btn primary" id="btn-animate" title="Play/Pause Sequence (Press Space)">
           <span id="anim-icon">▶</span> <span id="anim-text">Play Assembly Sequence</span>
         </button>
-        <button class="action-btn step-nav-btn" id="btn-next-step" title="Next Step">Step ▶</button>
-        <button class="action-btn step-nav-btn" id="btn-last-step" title="Last Step (Fully Assembled)">▶|</button>
+        <button class="action-btn step-nav-btn" id="btn-next-step" title="Next Step (Press Right/D)">Step ▶</button>
+        <button class="action-btn step-nav-btn" id="btn-last-step" title="Last Step (Fully Assembled, Press End)">▶|</button>
       </div>
 
       <div class="btn-group">
-        <button class="action-btn" id="btn-explode-all">Explode (0%)</button>
-        <button class="action-btn" id="btn-assemble-all">Assemble (100%)</button>
+        <button class="action-btn" id="btn-explode-all" title="Explode / Disassemble All (0%)">Explode (0%)</button>
+        <button class="action-btn" id="btn-assemble-all" title="Assemble All (100%)">Assemble (100%)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div id="shortcuts-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">Keyboard &amp; Mouse Controls</span>
+        <button class="modal-close" id="btn-close-modal">✕</button>
+      </div>
+      <div class="shortcut-row">
+        <span>Play / Pause Animation</span>
+        <span class="kbd-tag">Space</span>
+      </div>
+      <div class="shortcut-row">
+        <span>Next Step / Assemble</span>
+        <span class="kbd-tag">→</span> / <span class="kbd-tag">D</span>
+      </div>
+      <div class="shortcut-row">
+        <span>Previous Step / Explode</span>
+        <span class="kbd-tag">←</span> / <span class="kbd-tag">A</span>
+      </div>
+      <div class="shortcut-row">
+        <span>Jump to First Step (0%)</span>
+        <span class="kbd-tag">Home</span>
+      </div>
+      <div class="shortcut-row">
+        <span>Jump to Last Step (100%)</span>
+        <span class="kbd-tag">End</span>
+      </div>
+      <div class="shortcut-row">
+        <span>Camera Views</span>
+        <span class="kbd-tag">1</span> <span class="kbd-tag">2</span> <span class="kbd-tag">3</span> <span class="kbd-tag">4</span>
+      </div>
+      <div class="shortcut-row">
+        <span>Click 3D Mesh</span>
+        <span class="kbd-tag">Select Part</span>
+      </div>
+      <div class="shortcut-row">
+        <span>Toggle Selected Visibility</span>
+        <span class="kbd-tag">H</span>
+      </div>
+      <div class="shortcut-row">
+        <span>Close Modal / Clear</span>
+        <span class="kbd-tag">Esc</span>
       </div>
     </div>
   </div>
@@ -627,6 +861,13 @@
     controls.minDistance = 0.4;
     controls.maxDistance = 35;
     controls.target.set(0, 0, 0);
+
+    // Deselect preset buttons when user manually orbits
+    controls.addEventListener('start', () => {
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        if (btn.id !== 'btn-shortcuts') btn.classList.remove('active');
+      });
+    });
 
     // ─── Studio Lighting ───
     scene.add(new THREE.AmbientLight(0xffffff, 0.65));
@@ -1232,6 +1473,9 @@
         const item = document.createElement('div');
         item.className = 'part-item';
         item.id = `comp-item-${comp.id}`;
+        item.dataset.name = comp.title.toLowerCase();
+        item.dataset.type = comp.type.toLowerCase();
+        item.dataset.num = comp.displayNum;
 
         const isVis = comp.mesh ? comp.mesh.visible : true;
 
@@ -1257,6 +1501,16 @@
 
       document.getElementById('btn-show-all').addEventListener('click', showAllComponents);
       document.getElementById('btn-hide-all').addEventListener('click', hideAllComponents);
+
+      // Search & Filter in Outliner
+      const searchInput = document.getElementById('search-parts');
+      searchInput.addEventListener('input', (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        document.querySelectorAll('.part-item').forEach(el => {
+          const match = el.dataset.name.includes(q) || el.dataset.type.includes(q) || el.dataset.num.includes(q);
+          el.style.display = match ? 'flex' : 'none';
+        });
+      });
     }
 
     function highlightComp(comp, active) {
@@ -1267,17 +1521,23 @@
 
     function jumpToComp(idx) {
       clearHover();
-      activeItemIdx = idx;
-      const comp = componentList[idx];
+      activeItemIdx = Math.max(0, Math.min(componentList.length - 1, idx));
+      const comp = componentList[activeItemIdx];
       targetProgress = comp.navP;
       slider.value = Math.round(comp.navP * 1000);
       updateSliderLabel(comp.navP);
       if (isAnimating) stopAnimation();
 
+      // Scroll active item into view inside the outliner
+      const activeEl = document.getElementById(`comp-item-${comp.id}`);
+      if (activeEl) {
+        activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+
+      // Smoothly reposition orbit target to component world position
       if (comp.mesh && comp.mesh.visible) {
-        const wp = new THREE.Vector3();
-        comp.mesh.getWorldPosition(wp);
-        controls.target.copy(wp);
+        const targetWorldPos = comp.originalPos.clone().add(comp.calcPos(comp.navP));
+        controls.target.lerp(targetWorldPos, 0.5);
       }
     }
 
@@ -1299,8 +1559,11 @@
       document.getElementById('current-step-title').textContent = `${comp.title} — ${comp.desc}`;
 
       document.querySelectorAll('.part-item').forEach((el, i) => {
-        if (i === currentIdx) el.classList.add('active');
-        else el.classList.remove('active');
+        if (i === currentIdx) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
 
         if (p >= componentList[i].activeWindow[1]) el.classList.add('done');
         else el.classList.remove('done');
@@ -1324,7 +1587,7 @@
     function updateSliderLabel(val) {
       const pct = Math.round(val * 100);
       if (pct === 0) sliderLabel.textContent = '0% (Exploded / Disassembled)';
-      else if (pct === 100) sliderLabel.textContent = '100% (Fully Assembled 0%)';
+      else if (pct === 100) sliderLabel.textContent = '100% (Fully Assembled)';
       else sliderLabel.textContent = `${pct}% Assembly Progress`;
     }
 
@@ -1390,16 +1653,90 @@
       const b = document.getElementById(id);
       b.addEventListener('click', () => {
         clearHover();
-        document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+          if (btn.id !== 'btn-shortcuts') btn.classList.remove('active');
+        });
         b.classList.add('active');
         presets[id]();
       });
     });
 
-    // ─── Foolproof Tooltip & Hover System ───
+    // ─── Sidebar Toggle Buttons ───
+    const sidebar = document.getElementById('sidebar');
+    const toggleSidebarBtn = document.getElementById('btn-toggle-sidebar');
+    const closeSidebarBtn = document.getElementById('btn-close-sidebar');
+
+    function toggleSidebar() {
+      sidebar.classList.toggle('collapsed');
+      const isCollapsed = sidebar.classList.contains('collapsed');
+      toggleSidebarBtn.style.display = isCollapsed ? 'inline-flex' : 'none';
+    }
+
+    toggleSidebarBtn.addEventListener('click', toggleSidebar);
+    closeSidebarBtn.addEventListener('click', toggleSidebar);
+
+    // ─── Keyboard Shortcuts Modal ───
+    const shortcutsModal = document.getElementById('shortcuts-modal');
+    const btnShortcuts = document.getElementById('btn-shortcuts');
+    const btnCloseModal = document.getElementById('btn-close-modal');
+
+    function openModal() { shortcutsModal.classList.add('open'); }
+    function closeModal() { shortcutsModal.classList.remove('open'); }
+
+    btnShortcuts.addEventListener('click', openModal);
+    btnCloseModal.addEventListener('click', closeModal);
+    shortcutsModal.addEventListener('click', (e) => {
+      if (e.target === shortcutsModal) closeModal();
+    });
+
+    // ─── Keyboard Event Listeners ───
+    window.addEventListener('keydown', (e) => {
+      // Ignore when typing in search input
+      if (e.target.tagName === 'INPUT' && e.target.type === 'text') {
+        if (e.key === 'Escape') e.target.blur();
+        return;
+      }
+
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        toggleAnimation();
+      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        if (activeItemIdx > 0) jumpToComp(activeItemIdx - 1);
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        if (activeItemIdx < componentList.length - 1) jumpToComp(activeItemIdx + 1);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        jumpToComp(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        jumpToComp(componentList.length - 1);
+      } else if (e.key === '1') {
+        document.getElementById('btn-view-side').click();
+      } else if (e.key === '2') {
+        document.getElementById('btn-view-iso').click();
+      } else if (e.key === '3') {
+        document.getElementById('btn-view-front').click();
+      } else if (e.key === '4') {
+        document.getElementById('btn-view-top').click();
+      } else if (e.key === '?' || e.key === '/') {
+        openModal();
+      } else if (e.key === 'Escape') {
+        closeModal();
+        clearHover();
+      } else if (e.key === 'h' || e.key === 'H') {
+        const comp = componentList[activeItemIdx];
+        if (comp) toggleComponentVisibility(comp);
+      }
+    });
+
+    // ─── Foolproof Tooltip & Hover & Click Raycasting ───
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     const tooltip = document.getElementById('tooltip');
+    let isPointerDragging = false;
+    let pointerDownPos = { x: 0, y: 0 };
 
     function clearHover() {
       if (hoveredMesh) {
@@ -1411,6 +1748,41 @@
       tooltip.style.opacity = '0';
       canvas.style.cursor = 'default';
     }
+
+    window.addEventListener('pointerdown', (e) => {
+      isPointerDragging = false;
+      pointerDownPos = { x: e.clientX, y: e.clientY };
+    });
+
+    window.addEventListener('pointerup', (e) => {
+      const dx = Math.abs(e.clientX - pointerDownPos.x);
+      const dy = Math.abs(e.clientY - pointerDownPos.y);
+      // If user dragged more than 5px, it's orbit/pan, not a click
+      if (dx > 5 || dy > 5) {
+        isPointerDragging = true;
+        return;
+      }
+
+      if (e.target !== canvas) return;
+
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const visibleMeshes = allLoadedMeshes.filter(m => m.visible);
+      const hits = raycaster.intersectObjects(visibleMeshes, false);
+
+      if (hits.length > 0) {
+        const hit = hits[0].object;
+        const comp = hit.userData.component || componentList.find(c => c.mesh === hit);
+        if (comp) {
+          const idx = componentList.indexOf(comp);
+          if (idx !== -1) {
+            jumpToComp(idx);
+          }
+        }
+      }
+    });
 
     window.addEventListener('pointermove', (e) => {
       // Ignore hover if over control panels / sidebar
@@ -1436,8 +1808,12 @@
 
         const comp = hit.userData.component || componentList.find(c => c.mesh === hit);
         tooltip.textContent = comp ? `${comp.displayNum}. ${comp.title}` : hit.name;
-        tooltip.style.left = `${e.clientX}px`;
-        tooltip.style.top = `${e.clientY}px`;
+        
+        // Clamp tooltip position so it never overflows screen edge
+        const posX = Math.min(e.clientX, window.innerWidth - 200);
+        const posY = Math.max(20, Math.min(e.clientY, window.innerHeight - 30));
+        tooltip.style.left = `${posX}px`;
+        tooltip.style.top = `${posY}px`;
         tooltip.style.opacity = '1';
         canvas.style.cursor = 'pointer';
       } else {
@@ -1501,3 +1877,4 @@
   </script>
 </body>
 </html>
+
