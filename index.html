@@ -1339,45 +1339,159 @@
       allLoadedMeshes.length = 0;
       meshByExactName.clear();
 
-      // Collect every mesh in the scene and attach dedicated cloned materials & origMat
+      // ── Process GLB with Reliable 26-Component Resolution ──
+      // In Blender / GLTF exports, duplicated objects (.001/.002/.003) can share
+      // mesh data references. We resolve each node's exact name via GLTF parser
+      // associations and provide geometric spatial fallback disambiguation for
+      // friction disks, springs, and bolts so EVERY component is guaranteed bound.
+
       root.traverse((child) => {
-        if (child.isMesh) {
-          allLoadedMeshes.push(child);
-          child.castShadow = true;
-          child.receiveShadow = true;
+        if (!child.isMesh) return;
 
-          let mat = materialsDict.steel;
-          const n = child.name.toLowerCase();
-          if (n.includes('friction')) mat = materialsDict.friction;
-          else if (n.includes('spring')) mat = materialsDict.spring;
-          else if (n.includes('bolt')) mat = materialsDict.bolt;
-          else if (n.includes('washer') || n.includes('guide')) mat = materialsDict.brass;
-          else if (n.includes('shaft') || n.includes('bearing') || n.includes('nut')) mat = materialsDict.shaft;
-          else if (n.includes('outer')) mat = materialsDict.basket;
+        allLoadedMeshes.push(child);
+        child.castShadow = true;
+        child.receiveShadow = true;
 
-          child.material = mat.clone();
-          child.userData.origMat = child.material;
-
-          meshByExactName.set(child.name, child);
-          if (child.parent && child.parent.name) {
-            meshByExactName.set(child.parent.name, child);
+        // 1. Resolve exact GLTF node name via GLTF parser associations
+        let exactName = '';
+        if (gltf.parser && gltf.parser.associations) {
+          const assoc = gltf.parser.associations.get(child) || (child.parent ? gltf.parser.associations.get(child.parent) : null);
+          if (assoc && assoc.nodes !== undefined && gltf.parser.json && gltf.parser.json.nodes) {
+            const nodeDef = gltf.parser.json.nodes[assoc.nodes];
+            if (nodeDef && nodeDef.name) exactName = nodeDef.name;
           }
+        }
+        if (!exactName) exactName = child.name;
+        if (!exactName && child.parent && child.parent.name !== 'Scene') exactName = child.parent.name;
+
+        // Assign clean materials
+        const n = exactName.toLowerCase();
+        let mat = materialsDict.steel;
+        if (n.includes('friction')) mat = materialsDict.friction;
+        else if (n.includes('spring')) mat = materialsDict.spring;
+        else if (n.includes('bolt')) mat = materialsDict.bolt;
+        else if (n.includes('washer') || n.includes('guide')) mat = materialsDict.brass;
+        else if (n.includes('shaft') || n.includes('bearing') || n.includes('nut')) mat = materialsDict.shaft;
+        else if (n.includes('outer')) mat = materialsDict.basket;
+
+        child.material = mat.clone();
+        child.userData.origMat = child.material;
+
+        if (exactName) {
+          child.name = exactName;
+          meshByExactName.set(exactName, child);
         }
       });
 
-      // Bind each component strictly by exact name
+      // Step 2: Bind each component to its mesh
       componentList.forEach((comp) => {
-        const mesh = meshByExactName.get(comp.name);
+        let mesh = meshByExactName.get(comp.name);
+        if (!mesh) {
+          root.traverse((c) => {
+            if (!mesh && c.name === comp.name) mesh = c.isMesh ? c : c.children?.find(ch => ch.isMesh);
+          });
+        }
+        if (!mesh) {
+          mesh = allLoadedMeshes.find(m => m.name === comp.name);
+        }
+
         if (mesh) {
           comp.mesh = mesh;
           comp.originalPos = mesh.position.clone();
           comp.origMat = mesh.material;
           comp.visible = true;
           mesh.userData.component = comp;
-        } else {
-          console.warn('Mesh not found for exact name:', comp.name);
         }
       });
+
+      // Step 3: Spatial Disambiguation Fallbacks for duplicate component sets
+      // A. Friction Disks: sorted along X axis (descending: 7.4 outer -> 7.1 inner)
+      const unboundFriction = componentList.filter(c => c.name.includes('friction') && !c.mesh);
+      if (unboundFriction.length > 0) {
+        const frictionMeshes = allLoadedMeshes.filter(m => m.name.includes('friction') || (m.userData.component && m.userData.component.name.includes('friction')));
+        frictionMeshes.sort((a, b) => b.position.x - a.position.x);
+        const frictionComps = [
+          componentList.find(c => c.name === 'clutch-friction-disk-set'),
+          componentList.find(c => c.name === 'clutch-friction-disk-set.001'),
+          componentList.find(c => c.name === 'clutch-friction-disk-set.002'),
+          componentList.find(c => c.name === 'clutch-friction-disk-set.003')
+        ];
+        frictionComps.forEach((c, idx) => {
+          if (c && frictionMeshes[idx]) {
+            c.mesh = frictionMeshes[idx];
+            c.originalPos = frictionMeshes[idx].position.clone();
+            c.origMat = frictionMeshes[idx].material;
+            c.visible = true;
+            frictionMeshes[idx].userData.component = c;
+            frictionMeshes[idx].name = c.name;
+            meshByExactName.set(c.name, frictionMeshes[idx]);
+          }
+        });
+      }
+
+      // B. 4 Springs: Top (+Y), Bottom (-Y), Front (+Z), Back (-Z)
+      const unboundSprings = componentList.filter(c => c.name.includes('spring') && !c.mesh);
+      if (unboundSprings.length > 0) {
+        const springMeshes = allLoadedMeshes.filter(m => m.name.includes('spring') || (m.userData.component && m.userData.component.name.includes('spring')));
+        if (springMeshes.length >= 4) {
+          const topSpring = springMeshes.reduce((a, b) => a.position.y > b.position.y ? a : b, springMeshes[0]);
+          const bottomSpring = springMeshes.reduce((a, b) => a.position.y < b.position.y ? a : b, springMeshes[0]);
+          const frontSpring = springMeshes.reduce((a, b) => a.position.z > b.position.z ? a : b, springMeshes[0]);
+          const backSpring = springMeshes.reduce((a, b) => a.position.z < b.position.z ? a : b, springMeshes[0]);
+
+          const springMap = {
+            'clutch-spring-a': topSpring,
+            'clutch-spring-a.001': bottomSpring,
+            'clutch-spring-a.002': frontSpring,
+            'clutch-spring-a.003': backSpring
+          };
+          Object.keys(springMap).forEach(sName => {
+            const comp = componentList.find(c => c.name === sName);
+            const sMesh = springMap[sName];
+            if (comp && sMesh) {
+              comp.mesh = sMesh;
+              comp.originalPos = sMesh.position.clone();
+              comp.origMat = sMesh.material;
+              comp.visible = true;
+              sMesh.userData.component = comp;
+              sMesh.name = sName;
+              meshByExactName.set(sName, sMesh);
+            }
+          });
+        }
+      }
+
+      // C. 4 Flange Bolts: Front (+Z), Back (-Y/Z), Top (+Y), Bottom (-Y)
+      const unboundBolts = componentList.filter(c => c.name.includes('bolt') && !c.mesh);
+      if (unboundBolts.length > 0) {
+        const boltMeshes = allLoadedMeshes.filter(m => m.name.includes('bolt') || (m.userData.component && m.userData.component.name.includes('bolt')));
+        if (boltMeshes.length >= 4) {
+          const topBolt = boltMeshes.reduce((a, b) => a.position.y > b.position.y ? a : b, boltMeshes[0]);
+          const bottomBolt = boltMeshes.reduce((a, b) => a.position.y < b.position.y ? a : b, boltMeshes[0]);
+          const frontBolt = boltMeshes.reduce((a, b) => a.position.z > b.position.z ? a : b, boltMeshes[0]);
+          const backBolt = boltMeshes.reduce((a, b) => a.position.z < b.position.z ? a : b, boltMeshes[0]);
+
+          const boltMap = {
+            'flange-bolt-6x22': frontBolt,
+            'flange-bolt-6x22.001': backBolt,
+            'flange-bolt-6x22.002': topBolt,
+            'flange-bolt-6x22.003': bottomBolt
+          };
+          Object.keys(boltMap).forEach(bName => {
+            const comp = componentList.find(c => c.name === bName);
+            const bMesh = boltMap[bName];
+            if (comp && bMesh) {
+              comp.mesh = bMesh;
+              comp.originalPos = bMesh.position.clone();
+              comp.origMat = bMesh.material;
+              comp.visible = true;
+              bMesh.userData.component = comp;
+              bMesh.name = bName;
+              meshByExactName.set(bName, bMesh);
+            }
+          });
+        }
+      }
 
       scene.add(root);
       buildSidebar();
@@ -1405,22 +1519,33 @@
     // ─── Visibility Toggle (Individual & Global) ───
     function toggleComponentVisibility(comp, e) {
       if (e) e.stopPropagation();
-      if (!comp.mesh) return;
+
+      if (!comp.mesh) {
+        comp.mesh = meshByExactName.get(comp.name);
+      }
+      if (!comp.mesh) {
+        console.warn('Cannot toggle visibility: mesh missing for', comp.name);
+        return;
+      }
 
       clearHover();
 
-      comp.mesh.visible = !comp.mesh.visible;
-      comp.visible = comp.mesh.visible;
+      const newVis = !comp.visible;
+      comp.visible = newVis;
+      comp.mesh.visible = newVis;
+      comp.mesh.traverse((c) => {
+        c.visible = newVis;
+      });
 
       const itemEl = document.getElementById(`comp-item-${comp.id}`);
       if (itemEl) {
         const eyeBtn = itemEl.querySelector('.eye-btn');
         if (eyeBtn) {
-          eyeBtn.innerHTML = comp.visible ? EYE_OPEN_SVG : EYE_CLOSED_SVG;
-          eyeBtn.classList.toggle('hidden-state', !comp.visible);
-          eyeBtn.title = comp.visible ? 'Hide Component (Blender Eye)' : 'Show Component';
+          eyeBtn.innerHTML = newVis ? EYE_OPEN_SVG : EYE_CLOSED_SVG;
+          eyeBtn.classList.toggle('hidden-state', !newVis);
+          eyeBtn.title = newVis ? 'Hide Component (Blender Eye)' : 'Show Component';
         }
-        itemEl.classList.toggle('hidden-mesh', !comp.visible);
+        itemEl.classList.toggle('hidden-mesh', !newVis);
       }
     }
 
@@ -1431,6 +1556,10 @@
       });
       componentList.forEach((comp) => {
         comp.visible = true;
+        if (comp.mesh) {
+          comp.mesh.visible = true;
+          comp.mesh.traverse(c => { c.visible = true; });
+        }
         const itemEl = document.getElementById(`comp-item-${comp.id}`);
         if (itemEl) {
           itemEl.classList.remove('hidden-mesh');
@@ -1451,6 +1580,10 @@
       });
       componentList.forEach((comp) => {
         comp.visible = false;
+        if (comp.mesh) {
+          comp.mesh.visible = false;
+          comp.mesh.traverse(c => { c.visible = false; });
+        }
         const itemEl = document.getElementById(`comp-item-${comp.id}`);
         if (itemEl) {
           itemEl.classList.add('hidden-mesh');
