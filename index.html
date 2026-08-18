@@ -833,6 +833,7 @@
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
     // ─── Scene & Canvas Setup ───
     const canvas = document.getElementById('webgl-canvas');
@@ -1957,22 +1958,37 @@
     canvas.addEventListener('pointerleave', clearHover);
     window.addEventListener('blur', clearHover);
 
-    // ─── GLTF Load ───
+    // ─── GLTF Load with Draco Decoder ───
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+    dracoLoader.preload();
+
     const loader = new GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
+
     const progressFill = document.getElementById('progress-fill');
     const loadingMsg = document.getElementById('loading-msg');
 
     loader.load(
-      'clutch.glb',
-      (gltf) => processModel(gltf),
+      'clutch-optimized.glb',
+      (gltf) => {
+        progressFill.style.width = '100%';
+        loadingMsg.textContent = 'Menyediakan komponen 3D...';
+        setTimeout(() => {
+          processModel(gltf);
+        }, 50);
+      },
       (xhr) => {
         if (xhr.total > 0) {
-          const pct = Math.round((xhr.loaded / xhr.total) * 100);
+          const pct = Math.min(99, Math.round((xhr.loaded / xhr.total) * 100));
           progressFill.style.width = `${pct}%`;
-          loadingMsg.textContent = `Loading clutch components... ${pct}%`;
+          loadingMsg.textContent = `Memuat turun model... ${pct}%`;
         }
       },
-      (err) => console.error('GLTF Load error:', err)
+      (err) => {
+        console.error('GLTF Load error:', err);
+        loadingMsg.textContent = 'Ralat memuat turun model 3D';
+      }
     );
 
     window.addEventListener('resize', () => {
